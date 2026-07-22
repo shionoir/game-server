@@ -120,53 +120,85 @@ wss.on("connection", ws => {
       return;
     }
 
-    // ===== ルーム作成 or 参加 =====
-    if (data.type === "join") {
-      const roomId = data.roomId;
-      const clientId = data.id;
+// ===== ルーム作成 or 参加 =====
+if (data.type === "join") {
 
-      if (!rooms[roomId]) {
-        rooms[roomId] = {
-          roomId,
-          maxPlayers: 4,
-          maxSpectators: 1,
-          players: [],
-          spectators: [],
-          phase: "waiting",
-          selectedChars: {},
-          charFinalizeTimer: null
-        };
-      }
+  const roomId = data.roomId;
+  const clientId = data.id;
+  const isHost = data.isHost === true;
 
-      const room = rooms[roomId];
+  // ===== ルーム作成 =====
+  if (isHost) {
 
-      ws.id = clientId;
-      ws.roomId = roomId;
-
-      const isPlayer =
-        room.players.length < room.maxPlayers && room.phase === "waiting";
-      if (isPlayer) {
-        room.players.push({
-          id: ws.id,
-          name: data.name || "NoName",
-          ws,
-          ready: false,
-          isHost: room.players.length === 0
-        });
-      } else {
-        room.spectators.push({
-          id: ws.id,
-          name: data.name || "NoName",
-          ws
-        });
-      }
-
-      // 自分に joinResult
-      send(ws, { type: "joinResult", success: true });
-
-      // ルーム情報を全員に通知
-      broadcast(room, roomInfo(room));
+    // 同じ部屋がある
+    if (rooms[roomId]) {
+      send(ws, {
+        type: "joinResult",
+        success: false,
+        reason: "その部屋は既に存在します"
+      });
+      return;
     }
+
+    rooms[roomId] = {
+      roomId,
+      maxPlayers: 4,
+      maxSpectators: 20,
+      players: [],
+      spectators: [],
+      phase: "waiting",
+      selectedChars: {},
+      charFinalizeTimer: null
+    };
+  }
+
+  // ===== ルーム参加 =====
+  else {
+
+    // 部屋が存在しない
+    if (!rooms[roomId]) {
+      send(ws, {
+        type: "joinResult",
+        success: false,
+        reason: "部屋が見つかりません"
+      });
+      return;
+    }
+  }
+
+  const room = rooms[roomId];
+
+  ws.id = clientId;
+  ws.roomId = roomId;
+
+  const isPlayer =
+    room.players.length < room.maxPlayers &&
+    room.phase === "waiting";
+
+  if (isPlayer) {
+    room.players.push({
+      id: ws.id,
+      name: data.name || "NoName",
+      ws,
+      ready: false,
+      isHost: room.players.length === 0
+    });
+  }
+  else {
+    room.spectators.push({
+      id: ws.id,
+      name: data.name || "NoName",
+      ws
+    });
+  }
+
+  send(ws, {
+    type: "joinResult",
+    success: true
+  });
+
+  broadcast(room, roomInfo(room));
+}
 
     // ===== 準備完了 =====
     if (data.type === "ready") {
