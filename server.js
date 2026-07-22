@@ -230,36 +230,41 @@ if (
     }
 
     // ===== ゲーム開始（ホストのみ）=====
-    if (data.type === "start") {
-      const room = rooms[ws.roomId];
-      if (!room) return;
+if (data.type === "start") {
+  const room = rooms[ws.roomId];
+  if (!room) return;
 
-      const player = room.players.find(p => p.id === ws.id);
-      if (!player || !player.isHost) return;
+  const player = room.players.find(p => p.id === ws.id);
+  if (!player || !player.isHost) return;
 
-      if (
-        room.players.length >= 2 &&
-        room.players.every(p => p.ready || p.isHost)
-      ) {
-room.selectedChars = {};
-room.phase = "playing";
+  if (
+    room.players.length >= 2 &&
+    room.players.every(p => p.ready || p.isHost)
+  ) {
 
-// ★ キャラ選択終了時刻（現在時刻 + 30秒）
-const endTime = Date.now() + 30000;
-room.charSelectEndTime = endTime;
-
-// ★30秒後に強制確定
-room.charFinalizeTimer = setTimeout(() => {
-    finalizeCharacters(room);
-}, 30000);
-
-// 全員へ終了時刻も送る
-broadcast(room, {
-    type: "gameStart",
-    endTime: endTime
-});
-      }
+    // 前回のタイマーが残っていたら消す
+    if (room.charFinalizeTimer) {
+      clearTimeout(room.charFinalizeTimer);
+      room.charFinalizeTimer = null;
     }
+
+    room.selectedChars = {};
+    room.phase = "playing";
+
+    // キャラ選択終了時刻（現在時刻 + 30秒）
+    const endTime = Date.now() + 30000;
+    room.charSelectEndTime = endTime;
+
+    room.charFinalizeTimer = setTimeout(() => {
+      finalizeCharacters(room);
+    }, 30000);
+
+    broadcast(room, {
+      type: "gameStart",
+      endTime: endTime
+    });
+  }
+}
 
     // ===== ルーム情報要求 =====
     if (data.type === "requestRoomInfo") {
