@@ -61,10 +61,14 @@ function findRoomByWs(ws) {
 }
 
 function finalizeCharacters(room) {
-  // すでに確定済みなら何もしない
   if (room.phase === "battle") return;
 
   console.log("finalizeCharacters");
+
+  if (room.charFinalizeTimer) {
+    clearTimeout(room.charFinalizeTimer);
+    room.charFinalizeTimer = null;
+  }
 
   room.players.forEach(p => {
     if (!room.selectedChars.hasOwnProperty(p.id)) {
