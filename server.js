@@ -135,7 +135,7 @@ if (data.type === "join") {
       send(ws, {
         type: "joinResult",
         success: false,
-        reason: "その部屋は既に存在します"
+        reason: "room_duplication"
       });
       return;
     }
@@ -160,7 +160,7 @@ if (data.type === "join") {
       send(ws, {
         type: "joinResult",
         success: false,
-        reason: "部屋が見つかりません"
+        reason: "room_not_found"
       });
       return;
     }
