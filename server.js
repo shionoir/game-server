@@ -176,7 +176,7 @@ if (
     send(ws, {
         type: "joinResult",
         success: false,
-        reason: "部屋が満員です"
+        reason: "player_full"
     });
     return;
 }
