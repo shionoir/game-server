@@ -168,6 +168,19 @@ if (data.type === "join") {
 
   const room = rooms[roomId];
 
+  // ===== 満員チェック =====
+if (
+    room.players.length >= room.maxPlayers &&
+    room.spectators.length >= room.maxSpectators
+) {
+    send(ws, {
+        type: "joinResult",
+        success: false,
+        reason: "部屋が満員です"
+    });
+    return;
+}
+
   ws.id = clientId;
   ws.roomId = roomId;
 
