@@ -241,15 +241,23 @@ if (
         room.players.length >= 2 &&
         room.players.every(p => p.ready || p.isHost)
       ) {
-        room.selectedChars = {};
-        room.phase = "playing";
+room.selectedChars = {};
+room.phase = "playing";
 
-        // ★30秒後に強制確定
-        room.charFinalizeTimer = setTimeout(() => {
-        finalizeCharacters(room);
-        }, 30000);
-        
-        broadcast(room, { type: "gameStart" });
+// ★ キャラ選択終了時刻（現在時刻 + 30秒）
+const endTime = Date.now() + 30000;
+room.charSelectEndTime = endTime;
+
+// ★30秒後に強制確定
+room.charFinalizeTimer = setTimeout(() => {
+    finalizeCharacters(room);
+}, 30000);
+
+// 全員へ終了時刻も送る
+broadcast(room, {
+    type: "gameStart",
+    endTime: endTime
+});
       }
     }
 
