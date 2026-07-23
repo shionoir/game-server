@@ -294,20 +294,13 @@ if (data.type === "start") {
 
     room.selectedChars = {};
     room.previewChars = {};
-    room.phase = "playing";
 
-    // キャラ選択終了時刻（現在時刻 + 30秒）
-    const endTime = Date.now() + 30000;
-    room.charSelectEndTime = endTime;
-
-    room.charFinalizeTimer = setTimeout(() => {
-      finalizeCharacters(room);
-    }, 30000);
-
-    broadcast(room, {
-      type: "gameStart",
-      endTime: endTime
-    });
+    startPhase(
+    room,
+    "characterSelect",
+    30000,
+    () => finalizeCharacters(room)
+    );
   }
 }
     // ===== ルーム情報要求 =====
