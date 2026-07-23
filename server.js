@@ -104,26 +104,21 @@ room.players.forEach(p => {
     }
 });
 
-room.phase = "prepare";
+function finalizeCharacters(room)
+{
+    ...
 
-const endTime = Date.now() + 90000;
-room.prepareEndTime = endTime;
+    broadcast(room,{
+        type:"charResult",
+        ...
+    });
 
-room.prepareTimer = setTimeout(() => {
-    startBattle(room);
-}, 90000);
-
-broadcast(room, {
-    type: "prepareStart",
-    endTime: endTime
-});
-
-  broadcast(room, {
-    type: "charResult",
-    results: Object.entries(room.selectedChars).map(
-      ([playerId, charId]) => ({ playerId, charId })
-    )
-  });
+    startPhase(
+        room,
+        "prepare",
+        90000,
+        () => finalizePrepare(room)
+    );
 }
 
 wss.on("connection", ws => {
