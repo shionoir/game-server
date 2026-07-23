@@ -70,11 +70,16 @@ function finalizeCharacters(room) {
     room.charFinalizeTimer = null;
   }
 
-  room.players.forEach(p => {
+room.players.forEach(p => {
     if (!room.selectedChars.hasOwnProperty(p.id)) {
-      room.selectedChars[p.id] = Math.floor(Math.random() * 12) + 1;
+
+        if (room.previewChars[p.id]) {
+            room.selectedChars[p.id] = room.previewChars[p.id];
+        } else {
+            room.selectedChars[p.id] = Math.floor(Math.random() * 12) + 1;
+        }
     }
-  });
+});
 
   room.phase = "battle";
 
