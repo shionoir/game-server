@@ -104,22 +104,7 @@ room.players.forEach(p => {
     }
 });
 
-function finalizeCharacters(room)
-{
-    ...
-
-    broadcast(room,{
-        type:"charResult",
-        ...
-    });
-
-    startPhase(
-        room,
-        "prepare",
-        90000,
-        () => finalizePrepare(room)
-    );
-}
+room.phase = "battle";
 
 wss.on("connection", ws => {
   ws.id = null;
