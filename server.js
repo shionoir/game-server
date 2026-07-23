@@ -81,7 +81,19 @@ room.players.forEach(p => {
     }
 });
 
-  room.phase = "battle";
+room.phase = "prepare";
+
+const endTime = Date.now() + 90000;
+room.prepareEndTime = endTime;
+
+room.prepareTimer = setTimeout(() => {
+    startBattle(room);
+}, 90000);
+
+broadcast(room, {
+    type: "prepareStart",
+    endTime: endTime
+});
 
   broadcast(room, {
     type: "charResult",
