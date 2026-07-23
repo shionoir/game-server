@@ -152,6 +152,7 @@ if (data.type === "join") {
       spectators: [],
       phase: "waiting",
       selectedChars: {},
+      previewChars: {},
       charFinalizeTimer: null
     };
   }
