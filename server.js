@@ -266,14 +266,20 @@ if (data.type === "start") {
     });
   }
 }
-
     // ===== ルーム情報要求 =====
     if (data.type === "requestRoomInfo") {
       const room = rooms[ws.roomId];
       if (!room) return;
       send(ws, roomInfo(room));
     }
+// ===== キャラ仮選択 =====
+if (data.type === "previewChar") {
 
+    const room = rooms[ws.roomId];
+    if (!room || room.phase !== "playing") return;
+
+    room.previewChars[ws.id] = data.charId;
+}
     // ===== キャラクター選択 =====
 if (data.type === "selectChar") {
   const room = rooms[ws.roomId];
