@@ -255,6 +255,7 @@ if (data.type === "start") {
     }
 
     room.selectedChars = {};
+    room.previewChars = {};
     room.phase = "playing";
 
     // キャラ選択終了時刻（現在時刻 + 30秒）
