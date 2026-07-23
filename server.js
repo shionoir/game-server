@@ -45,29 +45,6 @@ function roomInfo(room) {
   };
 }
 
-function startPhase(room, phaseName, durationMs, endCallback) {
-
-    if (room.phaseTimer) {
-        clearTimeout(room.phaseTimer);
-        room.phaseTimer = null;
-    }
-
-    room.phase = phaseName;
-
-    room.phaseEndTime = Date.now() + durationMs;
-
-    room.phaseTimer = setTimeout(() => {
-        room.phaseTimer = null;
-        endCallback();
-    }, durationMs);
-
-    broadcast(room, {
-        type: "phaseStart",
-        phase: phaseName,
-        endTime: room.phaseEndTime
-    });
-}
-
 function ensureHost(room) {
   room.players.forEach(p => (p.isHost = false));
   if (room.players.length > 0) {
@@ -104,7 +81,15 @@ room.players.forEach(p => {
     }
 });
 
-room.phase = "battle";
+  room.phase = "battle";
+
+  broadcast(room, {
+    type: "charResult",
+    results: Object.entries(room.selectedChars).map(
+      ([playerId, charId]) => ({ playerId, charId })
+    )
+  });
+}
 
 wss.on("connection", ws => {
   ws.id = null;
@@ -165,18 +150,15 @@ if (data.type === "join") {
     }
 
     rooms[roomId] = {
-    roomId,
-    maxPlayers: 4,
-    maxSpectators: 20,
-    players: [],
-    spectators: [],
-    phase: "waiting",
-
-    selectedChars: {},
-    previewChars: {},
-
-    phaseEndTime: 0,
-    phaseTimer: null
+      roomId,
+      maxPlayers: 4,
+      maxSpectators: 20,
+      players: [],
+      spectators: [],
+      phase: "waiting",
+      selectedChars: {},
+      previewChars: {},
+      charFinalizeTimer: null
     };
   }
 
@@ -273,14 +255,20 @@ if (data.type === "start") {
     }
 
     room.selectedChars = {};
-    room.previewChars = {};
+    room.phase = "playing";
 
-    startPhase(
-    room,
-    "characterSelect",
-    30000,
-    () => finalizeCharacters(room)
-    );
+    // キャラ選択終了時刻（現在時刻 + 30秒）
+    const endTime = Date.now() + 30000;
+    room.charSelectEndTime = endTime;
+
+    room.charFinalizeTimer = setTimeout(() => {
+      finalizeCharacters(room);
+    }, 30000);
+
+    broadcast(room, {
+      type: "gameStart",
+      endTime: endTime
+    });
   }
 }
     // ===== ルーム情報要求 =====
