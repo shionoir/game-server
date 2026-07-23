@@ -162,15 +162,18 @@ if (data.type === "join") {
     }
 
     rooms[roomId] = {
-      roomId,
-      maxPlayers: 4,
-      maxSpectators: 20,
-      players: [],
-      spectators: [],
-      phase: "waiting",
-      selectedChars: {},
-      previewChars: {},
-      charFinalizeTimer: null
+    roomId,
+    maxPlayers: 4,
+    maxSpectators: 20,
+    players: [],
+    spectators: [],
+    phase: "waiting",
+
+    selectedChars: {},
+    previewChars: {},
+
+    phaseEndTime: 0,
+    phaseTimer: null
     };
   }
 
