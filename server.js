@@ -45,6 +45,27 @@ function roomInfo(room) {
   };
 }
 
+function startPhase(room, phaseName, durationMs, endCallback) {
+
+    if (room.phaseTimer) {
+        clearTimeout(room.phaseTimer);
+    }
+
+    room.phase = phaseName;
+    room.phaseEndTime = Date.now() + durationMs;
+
+    room.phaseTimer = setTimeout(() => {
+        room.phaseTimer = null;
+        endCallback(room);
+    }, durationMs);
+
+    broadcast(room,{
+        type:"phaseStart",
+        phase:phaseName,
+        endTime:room.phaseEndTime
+    });
+}
+
 function ensureHost(room) {
   room.players.forEach(p => (p.isHost = false));
   if (room.players.length > 0) {
