@@ -41,29 +41,30 @@ function roomInfo(room) {
     spectatorCount: room.spectators.length,
     maxPlayers: room.maxPlayers,
     maxSpectators: room.maxSpectators,
-    phase: room.phase
+    phase: room.phase,
+    phaseEndTime: room.phaseEndTime
   };
 }
 
 function startPhase(room, phaseName, durationMs, endCallback) {
 
-    if (room.phaseTimer) {
-        clearTimeout(room.phaseTimer);
-    }
+  if (room.phaseTimer) {
+    clearTimeout(room.phaseTimer);
+  }
 
-    room.phase = phaseName;
-    room.phaseEndTime = Date.now() + durationMs;
+  room.phase = phaseName;
+  room.phaseEndTime = Date.now() + durationMs;
 
-    room.phaseTimer = setTimeout(() => {
-        room.phaseTimer = null;
-        endCallback(room);
-    }, durationMs);
+  room.phaseTimer = setTimeout(() => {
+    room.phaseTimer = null;
+    endCallback(room);
+  }, durationMs);
 
-    broadcast(room,{
-        type:"phaseStart",
-        phase:phaseName,
-        endTime:room.phaseEndTime
-    });
+  broadcast(room, {
+    type: "phaseStart",
+    phase: phaseName,
+    endTime: room.phaseEndTime
+  });
 }
 
 function ensureHost(room) {
@@ -82,34 +83,60 @@ function findRoomByWs(ws) {
 }
 
 function finalizeCharacters(room) {
-  if (room.phase === "battle") return;
+
+  if (room.phase !== "characterSelect")
+    return;
 
   console.log("finalizeCharacters");
 
-  if (room.charFinalizeTimer) {
-    clearTimeout(room.charFinalizeTimer);
-    room.charFinalizeTimer = null;
-  }
+  // 未決定プレイヤーは仮選択→ランダムの順で決定
+  room.players.forEach(p => {
 
-room.players.forEach(p => {
     if (!room.selectedChars.hasOwnProperty(p.id)) {
 
-        if (room.previewChars[p.id]) {
-            room.selectedChars[p.id] = room.previewChars[p.id];
-        } else {
-            room.selectedChars[p.id] = Math.floor(Math.random() * 12) + 1;
-        }
+      if (room.previewChars.hasOwnProperty(p.id)) {
+        room.selectedChars[p.id] = room.previewChars[p.id];
+      }
+      else {
+        room.selectedChars[p.id] = Math.floor(Math.random() * 12) + 1;
+      }
     }
-});
+
+  });
 
   room.phase = "battle";
 
   broadcast(room, {
     type: "charResult",
     results: Object.entries(room.selectedChars).map(
-      ([playerId, charId]) => ({ playerId, charId })
+      ([playerId, charId]) => ({
+        playerId,
+        charId
+      })
     )
   });
+
+  // ===== 準備フェーズ開始 =====
+  startPhase(
+    room,
+    "prepare",
+    90000,
+    finalizePrepare
+  );
+}
+
+function finalizePrepare(room) {
+
+  room.phaseTimer = null;
+
+  console.log("prepare finished");
+
+  broadcast(room, {
+    type: "prepareFinished"
+  });
+
+  // ↓ここで後でターン開始
+  // startTurn(room);
 }
 
 wss.on("connection", ws => {
@@ -150,104 +177,104 @@ wss.on("connection", ws => {
       return;
     }
 
-// ===== ルーム作成 or 参加 =====
-if (data.type === "join") {
+    // ===== ルーム作成 or 参加 =====
+    if (data.type === "join") {
 
-  const roomId = data.roomId;
-  const clientId = data.id;
-  const isHost = data.isHost === true;
+      const roomId = data.roomId;
+      const clientId = data.id;
+      const isHost = data.isHost === true;
 
-  // ===== ルーム作成 =====
-  if (isHost) {
+      // ===== ルーム作成 =====
+      if (isHost) {
 
-    // 同じ部屋がある
-    if (rooms[roomId]) {
+        // 同じ部屋がある
+        if (rooms[roomId]) {
+          send(ws, {
+            type: "joinResult",
+            success: false,
+            reason: "room_duplication"
+          });
+          return;
+        }
+
+        rooms[roomId] = {
+          roomId,
+          maxPlayers: 4,
+          maxSpectators: 20,
+
+          players: [],
+          spectators: [],
+
+          phase: "waiting",
+
+          selectedChars: {},
+          previewChars: {},
+
+          phaseTimer: null,
+          phaseEndTime: 0
+        };
+      }
+
+      // ===== ルーム参加 =====
+      else {
+
+        // 部屋が存在しない
+        if (!rooms[roomId]) {
+          send(ws, {
+            type: "joinResult",
+            success: false,
+            reason: "room_not_found"
+          });
+          return;
+        }
+      }
+
+      const room = rooms[roomId];
+
+      // ===== 満員チェック =====
+      if (
+        room.players.length >= room.maxPlayers &&
+        room.spectators.length >= room.maxSpectators
+      ) {
+        send(ws, {
+          type: "joinResult",
+          success: false,
+          reason: "player_full"
+        });
+        return;
+      }
+
+      ws.id = clientId;
+      ws.roomId = roomId;
+
+      const isPlayer =
+        room.players.length < room.maxPlayers &&
+        room.phase === "waiting";
+
+      if (isPlayer) {
+        room.players.push({
+          id: ws.id,
+          name: data.name || "NoName",
+          ws,
+          ready: false,
+          isHost: room.players.length === 0
+        });
+      }
+      else {
+        room.spectators.push({
+          id: ws.id,
+          name: data.name || "NoName",
+          ws
+        });
+      }
+
       send(ws, {
         type: "joinResult",
-        success: false,
-        reason: "room_duplication"
+        success: true
       });
-      return;
+
+      broadcast(room, roomInfo(room));
     }
-
-    rooms[roomId] = {
-    roomId,
-    maxPlayers:4,
-    maxSpectators:20,
-
-    players:[],
-    spectators:[],
-
-    phase:"waiting",
-
-    selectedChars:{},
-    previewChars:{},
-
-    phaseTimer:null,
-    phaseEndTime:0
-    };
-  }
-
-  // ===== ルーム参加 =====
-  else {
-
-    // 部屋が存在しない
-    if (!rooms[roomId]) {
-      send(ws, {
-        type: "joinResult",
-        success: false,
-        reason: "room_not_found"
-      });
-      return;
-    }
-  }
-
-  const room = rooms[roomId];
-
-  // ===== 満員チェック =====
-if (
-    room.players.length >= room.maxPlayers &&
-    room.spectators.length >= room.maxSpectators
-) {
-    send(ws, {
-        type: "joinResult",
-        success: false,
-        reason: "player_full"
-    });
-    return;
-}
-
-  ws.id = clientId;
-  ws.roomId = roomId;
-
-  const isPlayer =
-    room.players.length < room.maxPlayers &&
-    room.phase === "waiting";
-
-  if (isPlayer) {
-    room.players.push({
-      id: ws.id,
-      name: data.name || "NoName",
-      ws,
-      ready: false,
-      isHost: room.players.length === 0
-    });
-  }
-  else {
-    room.spectators.push({
-      id: ws.id,
-      name: data.name || "NoName",
-      ws
-    });
-  }
-
-  send(ws, {
-    type: "joinResult",
-    success: true
-  });
-
-  broadcast(room, roomInfo(room));
-}
 
     // ===== 準備完了 =====
     if (data.type === "ready") {
@@ -262,80 +289,72 @@ if (
     }
 
     // ===== ゲーム開始（ホストのみ）=====
-if (data.type === "start") {
-  const room = rooms[ws.roomId];
-  if (!room) return;
+    if (data.type === "start") {
 
-  const player = room.players.find(p => p.id === ws.id);
-  if (!player || !player.isHost) return;
+      const room = rooms[ws.roomId];
+      if (!room) return;
 
-  if (
-    room.players.length >= 2 &&
-    room.players.every(p => p.ready || p.isHost)
-  ) {
+      const player = room.players.find(p => p.id === ws.id);
+      if (!player || !player.isHost) return;
 
-    // 前回のタイマーが残っていたら消す
-    if (room.charFinalizeTimer) {
-      clearTimeout(room.charFinalizeTimer);
-      room.charFinalizeTimer = null;
+      if (
+        room.players.length >= 2 &&
+        room.players.every(p => p.ready || p.isHost)
+      ) {
+
+        room.selectedChars = {};
+        room.previewChars = {};
+        room.phaseEndTime = 0;
+
+        startPhase(
+          room,
+          "characterSelect",
+          30000,
+          finalizeCharacters
+        );
+      }
     }
 
-    room.selectedChars = {};
-    room.phase = "playing";
-
-    // キャラ選択終了時刻（現在時刻 + 30秒）
-    const endTime = Date.now() + 30000;
-    room.charSelectEndTime = endTime;
-
-    room.charFinalizeTimer = setTimeout(() => {
-      finalizeCharacters(room);
-    }, 30000);
-
-    broadcast(room, {
-      type: "gameStart",
-      endTime: endTime
-    });
-  }
-}
     // ===== ルーム情報要求 =====
     if (data.type === "requestRoomInfo") {
       const room = rooms[ws.roomId];
       if (!room) return;
       send(ws, roomInfo(room));
     }
-// ===== キャラ仮選択 =====
-if (data.type === "previewChar") {
+    // ===== キャラ仮選択 =====
+    if (data.type === "previewChar") {
 
-    const room = rooms[ws.roomId];
-    if (!room || room.phase !== "playing") return;
+      const room = rooms[ws.roomId];
+      if (!room || room.phase !== "characterSelect") return;
 
-    room.previewChars[ws.id] = data.charId;
-}
+      room.previewChars[ws.id] = data.charId;
+    }
     // ===== キャラクター選択 =====
-if (data.type === "selectChar") {
-  const room = rooms[ws.roomId];
-  if (!room || room.phase !== "playing") return;
+    if (data.type === "selectChar") {
+      const room = rooms[ws.roomId];
+      if (!room || room.phase !== "characterSelect") return;
 
-  const isPlayer = room.players.some(p => p.id === ws.id);
-  if (!isPlayer) return;
+      const isPlayer = room.players.some(p => p.id === ws.id);
+      if (!isPlayer) return;
 
-  if (room.selectedChars.hasOwnProperty(ws.id)) return;
+      if (room.selectedChars.hasOwnProperty(ws.id)) return;
 
-  room.selectedChars[ws.id] = data.charId;
+      room.selectedChars[ws.id] = data.charId;
 
-  const allDecided = room.players.every(p =>
-    room.selectedChars.hasOwnProperty(p.id)
-  );
+      const allDecided = room.players.every(p =>
+        room.selectedChars.hasOwnProperty(p.id)
+      );
 
-  if (!allDecided) return;
+      if (allDecided) {
 
-  if (room.charFinalizeTimer) {
-    clearTimeout(room.charFinalizeTimer);
-    room.charFinalizeTimer = null;
-  }
+        if (room.phaseTimer) {
+          clearTimeout(room.phaseTimer);
+          room.phaseTimer = null;
+        }
 
-  finalizeCharacters(room);
-}
+        finalizeCharacters(room);
+      }
+    }
 
     // ===== 役割変更 =====
     if (data.type === "changeRole") {
