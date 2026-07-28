@@ -115,7 +115,9 @@ function finalizeCharacters(room) {
       })
     )
   });
-
+  
+  dealCards(room);
+  
   // ===== 準備フェーズ開始 =====
   startPhase(
     room,
