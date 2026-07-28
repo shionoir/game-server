@@ -139,6 +139,66 @@ function finalizePrepare(room) {
   // startTurn(room);
 }
 
+function createDeck(playerCount) {
+    const deck = [];
+
+    // 3人以上なら各数字2枚、それ以外なら各数字1枚
+    const copies = playerCount >= 3 ? 2 : 1;
+
+    for (let copy = 0; copy < copies; copy++) {
+        for (let number = 0; number <= 9; number++) {
+            deck.push(number);
+        }
+    }
+
+    shuffleDeck(deck);
+
+    return deck;
+}
+
+function shuffleDeck(deck) {
+    for (let i = deck.length - 1; i > 0; i--) {
+        const randomIndex = Math.floor(Math.random() * (i + 1));
+
+        const temp = deck[i];
+        deck[i] = deck[randomIndex];
+        deck[randomIndex] = temp;
+    }
+}
+
+function dealCards(room) {
+    const deck = createDeck(room.players.length);
+
+    room.deck = deck;
+    room.playerHands = {};
+
+    for (const player of room.players) {
+        room.playerHands[player.id] = [];
+
+        for (let i = 0; i < 3; i++) {
+            const card = room.deck.pop();
+
+            if (card === undefined) {
+                console.error("山札のカードが足りません");
+                break;
+            }
+
+            room.playerHands[player.id].push(card);
+        }
+    }
+
+    // 各プレイヤーに自分の手札だけ送る
+    for (const player of room.players) {
+        send(player.ws, {
+            type: "initialHand",
+            cards: room.playerHands[player.id]
+        });
+    }
+
+    console.log("カードを配りました");
+    console.log("残り山札:", room.deck);
+}
+
 wss.on("connection", ws => {
   ws.id = null;
   ws.roomId = null;
