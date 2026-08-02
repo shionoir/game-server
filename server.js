@@ -131,17 +131,22 @@ function finalizeCharacters(room) {
 }
 
 function finalizePrepare(room) {
+  // 二重実行防止
+  if (room.phase !== "prepare") return;
 
-  room.phaseTimer = null;
+  if (room.phaseTimer) {
+    clearTimeout(room.phaseTimer);
+    room.phaseTimer = null;
+  }
 
   console.log("prepare finished");
 
-  broadcast(room, {
-    type: "prepareFinished"
-  });
+  room.phase = "battle";
+  room.phaseEndTime = 0;
 
-  // ↓ここで後でターン開始
-  // startTurn(room);
+  broadcast(room, {
+    type: "battleStart"
+  });
 }
 
 function createDeck(playerCount) {
