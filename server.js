@@ -422,6 +422,39 @@ wss.on("connection", ws => {
       }
     }
 
+    // ===== 準備フェーズ完了 =====
+if (data.type === "prepareReady") {
+  const room = rooms[ws.roomId];
+
+  if (!room || room.phase !== "prepare") return;
+
+  const isPlayer = room.players.some(p => p.id === ws.id);
+  if (!isPlayer) return;
+
+  // このプレイヤーを準備完了にする
+  room.prepareReady[ws.id] = true;
+
+  broadcast(room, {
+    type: "prepareReadyUpdate",
+    readyCount: Object.keys(room.prepareReady).length,
+    playerCount: room.players.length
+  });
+
+  const allReady = room.players.every(p =>
+    room.prepareReady[p.id] === true
+  );
+
+  // 全員準備完了なら90秒を待たずに終了
+  if (allReady) {
+    if (room.phaseTimer) {
+      clearTimeout(room.phaseTimer);
+      room.phaseTimer = null;
+    }
+
+    finalizePrepare(room);
+  }
+}
+
     // ===== 役割変更 =====
     if (data.type === "changeRole") {
       const room = rooms[ws.roomId];
