@@ -271,6 +271,7 @@ wss.on("connection", ws => {
 
           selectedChars: {},
           previewChars: {},
+          prepareReady: {},
 
           phaseTimer: null,
           phaseEndTime: 0
