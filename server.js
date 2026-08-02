@@ -104,8 +104,6 @@ function finalizeCharacters(room) {
 
   });
 
-  room.phase = "battle";
-
   broadcast(room, {
     type: "charResult",
     results: Object.entries(room.selectedChars).map(
