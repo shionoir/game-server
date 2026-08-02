@@ -117,6 +117,9 @@ function finalizeCharacters(room) {
   });
   
   dealCards(room);
+
+  // 全員を未準備状態にする
+  room.prepareReady = {};
   
   // ===== 準備フェーズ開始 =====
   startPhase(
