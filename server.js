@@ -425,7 +425,7 @@ wss.on("connection", ws => {
       }
     }
 
-    // ===== 準備フェーズ完了 =====
+    // ===== 準備フェーズ完了・取り消し =====
 if (data.type === "prepareReady") {
   const room = rooms[ws.roomId];
 
@@ -434,20 +434,30 @@ if (data.type === "prepareReady") {
   const isPlayer = room.players.some(p => p.id === ws.id);
   if (!isPlayer) return;
 
-  // このプレイヤーを準備完了にする
-  room.prepareReady[ws.id] = true;
+  const ready = data.ready === true;
+
+  if (ready) {
+    room.prepareReady[ws.id] = true;
+  } else {
+    delete room.prepareReady[ws.id];
+  }
+
+  const readyCount = room.players.filter(
+    p => room.prepareReady[p.id] === true
+  ).length;
 
   broadcast(room, {
     type: "prepareReadyUpdate",
-    readyCount: Object.keys(room.prepareReady).length,
+    playerId: ws.id,
+    ready,
+    readyCount,
     playerCount: room.players.length
   });
 
-  const allReady = room.players.every(p =>
-    room.prepareReady[p.id] === true
+  const allReady = room.players.every(
+    p => room.prepareReady[p.id] === true
   );
 
-  // 全員準備完了なら90秒を待たずに終了
   if (allReady) {
     if (room.phaseTimer) {
       clearTimeout(room.phaseTimer);
