@@ -144,6 +144,10 @@ function finalizePrepare(room) {
 
   broadcast(room, {
     type: "battleStart"
+    players: room.players.map(p => ({
+        playerId: p.id,
+        words: room.playerWords[p.id] || 3
+    }))
   });
 }
 
