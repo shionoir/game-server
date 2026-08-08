@@ -143,10 +143,10 @@ function finalizePrepare(room) {
   room.phaseEndTime = 0;
 
   broadcast(room, {
-    type: "battleStart"
+    type: "battleStart",
     players: room.players.map(p => ({
-        playerId: p.id,
-        words: room.playerWords[p.id] || 3
+      playerId: p.id,
+      words: room.playerWords[p.id] || 3
     }))
   });
 }
