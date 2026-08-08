@@ -278,6 +278,7 @@ wss.on("connection", ws => {
           selectedChars: {},
           previewChars: {},
           prepareReady: {},
+          playerWords: {},
 
           phaseTimer: null,
           phaseEndTime: 0
