@@ -439,6 +439,8 @@ if (data.type === "prepareReady") {
 
   if (ready) {
     room.prepareReady[ws.id] = true;
+    // このプレイヤーの文字数を保存
+    room.playerWords[ws.id] = data.words;
   } else {
     delete room.prepareReady[ws.id];
   }
