@@ -283,7 +283,11 @@ wss.on("connection", ws => {
           previewChars: {},
           prepareReady: {},
           playerWords: {},
-
+          
+          deck: [],
+          playerHands: {},
+          discardPile: [],
+          
           phaseTimer: null,
           phaseEndTime: 0
         };
