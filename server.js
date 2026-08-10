@@ -216,8 +216,7 @@ function dealCards(room) {
         });
     }
 
-    console.log("カードを配りました");
-    console.log("残り山札:", room.deck);
+  broadcastDeckInfo(room);
 }
 
 wss.on("connection", ws => {
