@@ -183,6 +183,7 @@ function dealCards(room) {
 
     room.deck = deck;
     room.playerHands = {};
+    room.discardPile = [];
 
     for (const player of room.players) {
         room.playerHands[player.id] = [];
