@@ -82,6 +82,14 @@ function findRoomByWs(ws) {
   );
 }
 
+function broadcastDeckInfo(room) {
+  broadcast(room, {
+    type: "deckInfo",
+    deckCount: room.deck.length,
+    discardCount: room.discardPile.length
+  });
+}
+
 function finalizeCharacters(room) {
 
   if (room.phase !== "characterSelect")
