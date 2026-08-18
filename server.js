@@ -564,6 +564,12 @@ if (data.type === "prepareReady") {
   }
   // ★ 手札から1枚削除
   hand.splice(cardIndex, 1);
+      
+  // ★ 本人に最新手札を送る
+  send(ws, {
+    type: "handUpdate",
+    cards: hand
+  });
   // ★このターンに出したカードとして保存
   room.playedCards[ws.id] = card;
 
