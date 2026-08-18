@@ -560,7 +560,8 @@ if (data.type === "prepareReady") {
     console.log("持っていないカードを出そうとしました");
     return;
   }
-
+  // ★ 手札から1枚削除
+  hand.splice(cardIndex, 1);
   // ★このターンに出したカードとして保存
   room.playedCards[ws.id] = card;
 
