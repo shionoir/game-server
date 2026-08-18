@@ -195,18 +195,10 @@ function resolvePlayedCards(room) {
     .filter(([playerId, card]) => card === minCard)
     .map(([playerId]) => playerId);
 
-  console.log("最大カード:", maxCard);
-  console.log("最小カード:", minCard);
-
-  console.log("最大プレイヤー:", maxPlayers);
-  console.log("最小プレイヤー:", minPlayers);
-
   broadcast(room, {
     type: "cardResult",
-
     maxCard,
     minCard,
-
     maxPlayerIds: maxPlayers,
     minPlayerIds: minPlayers,
 
@@ -215,6 +207,16 @@ function resolvePlayedCards(room) {
       card
     }))
   });
+
+  // ★ 出したカードを捨て札へ
+  for (const [, card] of entries) {
+    room.discardPile.push(card);
+  }
+
+  // ★ 山札・捨て札枚数更新
+  broadcastDeckInfo(room);
+
+  // ★ 次ターン用
   room.playedCards = {};
 }
 
