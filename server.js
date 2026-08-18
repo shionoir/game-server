@@ -215,6 +215,7 @@ function resolvePlayedCards(room) {
       card
     }))
   });
+  room.playedCards = {};
 }
 
 function shuffleDeck(deck) {
