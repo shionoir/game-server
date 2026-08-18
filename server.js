@@ -176,6 +176,47 @@ function createDeck(playerCount) {
     return deck;
 }
 
+function resolvePlayedCards(room) {
+  const entries = Object.entries(room.playedCards);
+
+  if (entries.length === 0)
+    return;
+
+  const values = entries.map(([playerId, card]) => card);
+
+  const maxCard = Math.max(...values);
+  const minCard = Math.min(...values);
+
+  const maxPlayers = entries
+    .filter(([playerId, card]) => card === maxCard)
+    .map(([playerId]) => playerId);
+
+  const minPlayers = entries
+    .filter(([playerId, card]) => card === minCard)
+    .map(([playerId]) => playerId);
+
+  console.log("最大カード:", maxCard);
+  console.log("最小カード:", minCard);
+
+  console.log("最大プレイヤー:", maxPlayers);
+  console.log("最小プレイヤー:", minPlayers);
+
+  broadcast(room, {
+    type: "cardResult",
+
+    maxCard,
+    minCard,
+
+    maxPlayerIds: maxPlayers,
+    minPlayerIds: minPlayers,
+
+    results: entries.map(([playerId, card]) => ({
+      playerId,
+      card
+    }))
+  });
+}
+
 function shuffleDeck(deck) {
     for (let i = deck.length - 1; i > 0; i--) {
         const randomIndex = Math.floor(Math.random() * (i + 1));
@@ -486,6 +527,53 @@ if (data.type === "prepareReady") {
     }
 
     finalizePrepare(room);
+  }
+}
+   // ===== 提示カード確認 =====
+    if (data.type === "playCard") {
+  const room = rooms[ws.roomId];
+
+  if (!room || room.phase !== "battle")
+    return;
+
+  const player = room.players.find(p => p.id === ws.id);
+
+  if (!player)
+    return;
+
+  // すでにこのターン出している
+  if (room.playedCards.hasOwnProperty(ws.id))
+    return;
+
+  const hand = room.playerHands[ws.id];
+
+  if (!hand)
+    return;
+
+  const card = data.card;
+
+  // ★本当にそのカードを持っているか確認
+  const cardIndex = hand.indexOf(card);
+
+  if (cardIndex === -1) {
+    console.log("持っていないカードを出そうとしました");
+    return;
+  }
+
+  // ★このターンに出したカードとして保存
+  room.playedCards[ws.id] = card;
+
+  console.log(
+    `${player.name} が ${card} を出しました`
+  );
+
+  // 全員出したか確認
+  const allPlayed = room.players.every(p =>
+    room.playedCards.hasOwnProperty(p.id)
+  );
+
+  if (allPlayed) {
+    resolvePlayedCards(room);
   }
 }
 
