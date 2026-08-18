@@ -295,6 +295,8 @@ wss.on("connection", ws => {
           deck: [],
           playerHands: {},
           discardPile: [],
+
+          playedCards: {},
           
           phaseTimer: null,
           phaseEndTime: 0
